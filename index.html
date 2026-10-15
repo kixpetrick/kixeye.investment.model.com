@@ -1,0 +1,250 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#faf9f5;color:#141413}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<title>Investment Model</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@500;600&display=swap">
+<style>
+  /* Layout: a parametric F2P unit-economics model. Scenario presets + sliders on the left, live KPIs and a
+     retention curve on the right (stacks on mobile). Committed dark analyst theme. */
+  :root{
+    color-scheme: dark;
+    --bg:#0a0e13; --panel:#121a23; --panel-2:#18222d; --raised:#1e2a36;
+    --line:#293642; --line-soft:#1e2832;
+    --fg:#e7eef4; --fg-dim:#93a6b7; --fg-faint:#5d6f7e;
+    --accent:#2dd4bf; --accent-ink:#06100e;
+    --good:#46d389; --warn:#f6a723; --crit:#f45c73;
+    --good-bg:rgba(70,211,137,.12); --warn-bg:rgba(246,167,35,.13); --crit-bg:rgba(244,92,115,.12);
+    --disp:"Chakra Petch",system-ui,sans-serif; --body:"IBM Plex Sans",system-ui,sans-serif; --mono:"IBM Plex Mono",ui-monospace,monospace;
+  }
+  *{box-sizing:border-box}
+  body{background:radial-gradient(1200px 600px at 50% -10%,#11212b 0%,var(--bg) 60%);color:var(--fg);font-family:var(--body);line-height:1.45;margin:0}
+  .wrap{max-width:1000px;margin:0 auto;padding-block:26px;padding-inline:16px}
+  .eyebrow{font-family:var(--disp);font-weight:600;letter-spacing:.14em;text-transform:uppercase;font-size:11px;color:var(--accent)}
+  h1{font-family:var(--disp);font-weight:700;font-size:clamp(22px,5vw,30px);margin:.25em 0 .15em;text-wrap:balance}
+  .lede{color:var(--fg-dim);max-width:70ch;margin:0 0 20px;font-size:14px}
+  .lede b{color:var(--fg)}
+
+  .scen{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:18px;align-items:center}
+  .scen .lbl{font-family:var(--disp);text-transform:uppercase;letter-spacing:.1em;font-size:11px;color:var(--fg-faint);margin-right:4px}
+  .scen button{font-family:var(--disp);font-weight:600;font-size:12.5px;letter-spacing:.03em;color:var(--fg-dim);
+    background:var(--panel);border:1px solid var(--line);border-radius:9px;padding:8px 14px;cursor:pointer;transition:all .15s}
+  .scen button[aria-pressed="true"]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+  .scen button:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+
+  .grid{display:grid;grid-template-columns:1fr 1.15fr;gap:16px;align-items:start}
+  @media (max-width:720px){ .grid{grid-template-columns:1fr} }
+
+  .card{background:linear-gradient(180deg,var(--panel-2),var(--panel));border:1px solid var(--line);border-radius:13px;padding:15px}
+  .card h2{font-family:var(--disp);font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:var(--fg-faint);margin:0 0 12px}
+
+  .ctrl{margin-bottom:14px}
+  .ctrl:last-child{margin-bottom:0}
+  .ctrl .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:5px}
+  .ctrl .nm{font-size:13px;font-weight:500}
+  .ctrl .nm small{color:var(--fg-faint);font-weight:400;font-size:11px}
+  .ctrl .val{font-family:var(--mono);font-size:14px;font-weight:600;color:var(--accent)}
+  input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:5px;border-radius:4px;background:var(--line);outline:none;margin:4px 0}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:17px;height:17px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:pointer}
+  input[type=range]::-moz-range-thumb{width:17px;height:17px;border-radius:50%;background:var(--accent);border:2px solid var(--bg);cursor:pointer}
+  input[type=range]:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+
+  .kpis{display:grid;grid-template-columns:1fr 1fr;gap:9px;margin-bottom:14px}
+  .kpi{background:var(--raised);border:1px solid var(--line-soft);border-radius:10px;padding:10px 11px}
+  .kpi .k{font-family:var(--disp);text-transform:uppercase;letter-spacing:.05em;font-size:9px;color:var(--fg-faint)}
+  .kpi .v{font-family:var(--mono);font-size:20px;font-weight:600;margin-top:3px;font-variant-numeric:tabular-nums;line-height:1.1}
+  .kpi .sub{font-family:var(--mono);font-size:10px;color:var(--fg-dim);margin-top:2px}
+  .kpi.hero{grid-column:span 2;border-width:2px}
+  .kpi.hero .v{font-size:26px}
+  .pill{display:inline-block;font-family:var(--disp);font-size:9px;font-weight:600;letter-spacing:.05em;text-transform:uppercase;padding:2px 7px;border-radius:5px;margin-left:7px;vertical-align:middle}
+  .good{color:var(--good)} .warn{color:var(--warn)} .crit{color:var(--crit)}
+  .good-b{background:var(--good-bg);color:var(--good)} .warn-b{background:var(--warn-bg);color:var(--warn)} .crit-b{background:var(--crit-bg);color:var(--crit)}
+  .brd-good{border-color:var(--good)!important} .brd-warn{border-color:var(--warn)!important} .brd-crit{border-color:var(--crit)!important}
+
+  .chart{margin-top:4px}
+  .chart svg{width:100%;height:auto;display:block}
+  .axl{font-family:var(--mono);font-size:8px;fill:var(--fg-faint)}
+  .chart .cap{font-family:var(--mono);font-size:10px;color:var(--fg-dim);display:flex;justify-content:space-between;margin-top:6px}
+
+  .notes{margin-top:18px;font-size:12.5px;color:var(--fg-faint);border-top:1px solid var(--line-soft);padding-top:14px;line-height:1.6}
+  .notes b{color:var(--fg-dim)} .notes code{font-family:var(--mono);color:var(--fg-dim);font-size:11.5px}
+  .verdict{margin-top:14px;padding:11px 13px;border-radius:10px;border:1px solid var(--line);background:var(--panel);font-size:13px}
+  .verdict b{color:var(--fg)}
+</style>
+
+<div class="wrap">
+  <div class="eyebrow">WCB-Idle · Investment model</div>
+  <h1>Investment Model</h1>
+  <p class="lede">F2P unit economics for one UA cohort. <b>LTV is modeled from the retention curve</b>
+    (engaged-days × ARPDAU), so the outputs are honest — the base case lands <b>marginal</b>, which is the real
+    signal: the investment is a staged bet to <b>measure</b> retention & monetization, not a sure thing. Pick a
+    scenario or drag the sliders. The two biggest unknowns (retention, ARPDAU) are what the MVP exists to learn.</p>
+
+  <div class="scen" id="scen">
+    <span class="lbl">Scenario</span>
+    <button data-s="bear" aria-pressed="false">Bear</button>
+    <button data-s="base" aria-pressed="true">Base</button>
+    <button data-s="bull" aria-pressed="false">Bull</button>
+    <button data-s="custom" aria-pressed="false">Custom</button>
+  </div>
+
+  <div class="grid">
+    <!-- INPUTS -->
+    <div class="card">
+      <h2>Assumptions</h2>
+      <div class="ctrl"><div class="top"><span class="nm">UA budget <small>· first cohort</small></span><span class="val" id="v-ua"></span></div>
+        <input type="range" id="ua" min="50000" max="2000000" step="25000"></div>
+      <div class="ctrl"><div class="top"><span class="nm">CPI <small>· cost per install</small></span><span class="val" id="v-cpi"></span></div>
+        <input type="range" id="cpi" min="3" max="40" step="0.5"></div>
+      <div class="ctrl"><div class="top"><span class="nm">D1 retention</span><span class="val" id="v-d1"></span></div>
+        <input type="range" id="d1" min="10" max="60" step="1"></div>
+      <div class="ctrl"><div class="top"><span class="nm">D7 retention</span><span class="val" id="v-d7"></span></div>
+        <input type="range" id="d7" min="3" max="40" step="0.5"></div>
+      <div class="ctrl"><div class="top"><span class="nm">D30 retention</span><span class="val" id="v-d30"></span></div>
+        <input type="range" id="d30" min="1" max="25" step="0.5"></div>
+      <div class="ctrl"><div class="top"><span class="nm">ARPDAU <small>· rev / daily active</small></span><span class="val" id="v-arpdau"></span></div>
+        <input type="range" id="arpdau" min="0.2" max="4" step="0.05"></div>
+      <div class="ctrl"><div class="top"><span class="nm">Build cost <small>· to this phase</small></span><span class="val" id="v-build"></span></div>
+        <input type="range" id="build" min="200000" max="2000000" step="50000"></div>
+    </div>
+
+    <!-- OUTPUTS -->
+    <div>
+      <div class="card">
+        <h2>Unit economics</h2>
+        <div class="kpis">
+          <div class="kpi hero" id="k-ratio-card"><div class="k">LTV : CAC <span id="ratio-pill" class="pill"></span></div><div class="v" id="k-ratio"></div><div class="sub" id="k-ratio-sub"></div></div>
+          <div class="kpi"><div class="k">LTV / install</div><div class="v" id="k-ltv"></div><div class="sub" id="k-ltv-sub"></div></div>
+          <div class="kpi"><div class="k">Installs</div><div class="v" id="k-inst"></div><div class="sub">from UA budget</div></div>
+          <div class="kpi"><div class="k">Payback</div><div class="v" id="k-pb"></div><div class="sub">to recoup CPI</div></div>
+          <div class="kpi"><div class="k">Cohort ROI</div><div class="v" id="k-roi"></div><div class="sub" id="k-roi-sub">on UA spend</div></div>
+          <div class="kpi hero"><div class="k">Cohort net return</div><div class="v" id="k-net"></div><div class="sub" id="k-net-sub"></div></div>
+        </div>
+        <div class="chart">
+          <svg id="curve" viewBox="0 0 360 150" role="img" aria-label="Modeled retention curve"></svg>
+          <div class="cap"><span>Retention curve (day 1–180)</span><span id="eng-days"></span></div>
+        </div>
+      </div>
+      <div class="verdict" id="verdict"></div>
+    </div>
+  </div>
+
+  <div class="notes">
+    <b>Model.</b> Retention is a piecewise power curve fit to your D1/D7/D30 anchors and extrapolated to a
+    365-day horizon. <code>engaged-days = Σ retention(d)</code>; <code>LTV = engaged-days × ARPDAU</code>;
+    <code>installs = UA ÷ CPI</code>; <code>LTV:CAC = LTV ÷ CPI</code> (≥3 healthy, 1–3 marginal, &lt;1 loss).
+    Payback = days until cumulative per-install revenue ≥ CPI. <b>Caveats:</b> this is one *paid* cohort —
+    organic/viral installs lower blended CAC and improve everything; whales skew real ARPDAU; the long-tail
+    (D30+) drives most LTV, so it's the most sensitive and least-known input. <b>These are planning estimates to
+    stress-test, not forecasts.</b> The scenarios are anchored to the DESIGN §13 comparables (IdleMMO ≈ 8% D30 /
+    ARPDAU ≈ $1.08; Last War ≈ 4% D30 / ARPDAU ≈ $2.47). Full narrative in <b>BUSINESS-CASE.md</b>.
+  </div>
+</div>
+
+<script>
+  (function(){
+    var SCEN={
+      bear:{ua:300000,cpi:18,d1:25,d7:10,d30:3,arpdau:0.80,build:700000},
+      base:{ua:300000,cpi:12,d1:35,d7:16,d30:7,arpdau:1.20,build:700000},
+      bull:{ua:300000,cpi:9, d1:42,d7:24,d30:14,arpdau:1.80,build:700000}
+    };
+    var ids=["ua","cpi","d1","d7","d30","arpdau","build"];
+    var el={}; ids.forEach(function(i){ el[i]=document.getElementById(i); });
+
+    function usd(n){ if(n>=1e6) return "$"+(n/1e6).toFixed(2)+"M"; if(n>=1e3) return "$"+Math.round(n/1e3)+"k"; return "$"+n.toFixed(0); }
+    function usd2(n){ return "$"+n.toFixed(2); }
+    function commas(n){ return Math.round(n).toLocaleString("en-US"); }
+
+    // piecewise power retention: seg1 [1,7] via D1,D7; seg2 [7,30] via D7,D30; seg3 >30 extrapolate seg2 slope
+    function retFn(d1,d7,d30){
+      d1/=100; d7/=100; d30/=100;
+      var b1=Math.log(d7/d1)/Math.log(7);
+      var b2=Math.log(d30/d7)/Math.log(30/7);
+      return function(d){
+        var r;
+        if(d<=7) r=d1*Math.pow(d,b1);
+        else if(d<=30) r=d7*Math.pow(d/7,b2);
+        else r=d30*Math.pow(d/30,b2);
+        return Math.max(0,Math.min(1,r));
+      };
+    }
+
+    function calc(p){
+      var R=retFn(p.d1,p.d7,p.d30);
+      var eng=0, cum=0, payback=Infinity;
+      for(var d=1; d<=365; d++){
+        eng+=R(d);
+        cum+=p.arpdau*R(d);
+        if(payback===Infinity && cum>=p.cpi) payback=d;
+      }
+      var ltv=eng*p.arpdau;
+      var installs=p.ua/p.cpi;
+      var revenue=installs*ltv;
+      var net=revenue-p.ua;
+      var roi=net/p.ua;
+      var ratio=ltv/p.cpi;
+      var cohortsToBuild = net>0 ? Math.ceil(p.build/net) : Infinity;
+      return {R:R,eng:eng,ltv:ltv,installs:installs,revenue:revenue,net:net,roi:roi,ratio:ratio,payback:payback,cohortsToBuild:cohortsToBuild};
+    }
+
+    function health(ratio){ return ratio>=3?"good":ratio>=1?"warn":"crit"; }
+
+    function drawCurve(R){
+      var svg=document.getElementById("curve"), W=360,H=150, pad=20, days=180;
+      var x=function(d){ return pad+(d/days)*(W-pad-6); };
+      var y=function(r){ return 8+(1-r/0.6)*(H-28); }; // scale to 60% max
+      var pts="", area="M"+x(1)+","+(H-20);
+      for(var d=1; d<=days; d++){ var px=x(d),py=y(R(d)); pts+=(d===1?"M":"L")+px.toFixed(1)+","+py.toFixed(1); area+="L"+px.toFixed(1)+","+py.toFixed(1); }
+      area+="L"+x(days)+","+(H-20)+"Z";
+      var grid="";
+      [0.1,0.2,0.4,0.6].forEach(function(r){ var py=y(r); grid+='<line x1="'+pad+'" y1="'+py+'" x2="'+(W-6)+'" y2="'+py+'" stroke="var(--line-soft)" stroke-width="1"/><text class="axl" x="2" y="'+(py+3)+'">'+(r*100)+'%</text>'; });
+      var marks="";
+      [[1,"D1"],[7,"D7"],[30,"D30"]].forEach(function(m){ var px=x(m[0]),py=y(R(m[0])); marks+='<circle cx="'+px.toFixed(1)+'" cy="'+py.toFixed(1)+'" r="3" fill="var(--accent)" stroke="var(--bg)" stroke-width="1.5"/><text class="axl" x="'+px.toFixed(1)+'" y="'+(H-8)+'" text-anchor="middle">'+m[1]+'</text>'; });
+      svg.innerHTML=grid
+        +'<path d="'+area+'" fill="var(--accent)" fill-opacity=".10"/>'
+        +'<path d="'+pts+'" fill="none" stroke="var(--accent)" stroke-width="2"/>'+marks;
+    }
+
+    function render(){
+      var p={}; ids.forEach(function(i){ p[i]=parseFloat(el[i].value); });
+      document.getElementById("v-ua").textContent=usd(p.ua);
+      document.getElementById("v-cpi").textContent=usd2(p.cpi);
+      document.getElementById("v-d1").textContent=p.d1+"%";
+      document.getElementById("v-d7").textContent=p.d7+"%";
+      document.getElementById("v-d30").textContent=p.d30+"%";
+      document.getElementById("v-arpdau").textContent=usd2(p.arpdau);
+      document.getElementById("v-build").textContent=usd(p.build);
+
+      var r=calc(p), h=health(r.ratio);
+      var card=document.getElementById("k-ratio-card");
+      card.className="kpi hero brd-"+h;
+      document.getElementById("k-ratio").innerHTML='<span class="'+h+'">'+r.ratio.toFixed(2)+'×</span>';
+      var pill=document.getElementById("ratio-pill");
+      pill.className="pill "+h+"-b";
+      pill.textContent = h==="good"?"Scalable":h==="warn"?"Marginal":"Loss";
+      document.getElementById("k-ratio-sub").textContent = h==="good"?"≥3 — scale UA with confidence":h==="warn"?"1–3 — needs organic / better metrics":"<1 — loses money per install";
+
+      document.getElementById("k-ltv").textContent=usd2(r.ltv);
+      document.getElementById("k-ltv-sub").textContent=r.eng.toFixed(1)+" engaged-days";
+      document.getElementById("k-inst").textContent=commas(r.installs);
+      document.getElementById("k-pb").innerHTML = r.payback===Infinity?'<span class="crit">never</span>':(r.payback<183?'<span class="good">'+r.payback+'d</span>':r.payback<366?'<span class="warn">'+r.payback+'d</span>':'<span class="crit">'+r.payback+'d</span>');
+      document.getElementById("k-roi").innerHTML='<span class="'+(r.roi>=0?"good":"crit")+'">'+(r.roi>=0?"+":"")+Math.round(r.roi*100)+'%</span>';
+      document.getElementById("k-net").innerHTML='<span class="'+(r.net>=0?"good":"crit")+'">'+(r.net>=0?"+":"−")+usd(Math.abs(r.net))+'</span>';
+      document.getElementById("k-net-sub").textContent = r.net>0 ? (r.cohortsToBuild===Infinity?"":"~"+r.cohortsToBuild+" cohorts to recoup "+usd(p.build)+" build") : "cohort loses money";
+      document.getElementById("eng-days").textContent=r.eng.toFixed(1)+" engaged-days → LTV "+usd2(r.ltv);
+      drawCurve(r.R);
+
+      var v=document.getElementById("verdict");
+      if(r.ratio>=3) v.innerHTML='<b class="good">Scalable.</b> At these metrics the cohort returns '+usd(r.net)+' net and LTV:CAC is healthy — pour UA in while it holds. This is the outcome the staged build is trying to reach and prove.';
+      else if(r.ratio>=1) v.innerHTML='<b class="warn">Marginal.</b> The cohort is roughly break-even on UA ('+r.ratio.toFixed(2)+'×); it relies on organic installs and whale-skew to really work, and won\'t recoup build on paid UA alone fast. This is a common — and risky — place to be; the MVP exists to learn if you can push into the green.';
+      else v.innerHTML='<b class="crit">Loss.</b> Below 1× you lose money on every paid install ('+r.ratio.toFixed(2)+'×). If the MVP lands here, kill or pivot before the social/seasonal spend — which is exactly what the staged gates protect against.';
+    }
+
+    function setScen(s){
+      document.querySelectorAll("#scen button").forEach(function(b){ b.setAttribute("aria-pressed", b.dataset.s===s?"true":"false"); });
+      if(s!=="custom"){ var p=SCEN[s]; ids.forEach(function(i){ el[i].value=p[i]; }); render(); }
+    }
+    document.getElementById("scen").addEventListener("click",function(e){ var b=e.target.closest("button"); if(b) setScen(b.dataset.s); });
+    ids.forEach(function(i){ el[i].addEventListener("input",function(){ setScen("custom"); render(); }); });
+    setScen("base");
+  })();
+</script>
+
+</body></html>
